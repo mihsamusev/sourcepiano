@@ -1,5 +1,5 @@
 use crate::{
-    document::{Document},
+    document::{Document, Row},
     Terminal,
 };
 use std::{io, ops::Sub};
@@ -36,6 +36,7 @@ pub struct Editor {
     document_pos: Position,
     offset_to_document_pos: Position,
     document: Document,
+    reference_document: Document,
     current_char: Option<char>
 }
 
@@ -60,7 +61,8 @@ impl Editor {
             should_quit: false,
             terminal: Terminal::try_new().expect("failed to get terminal size="),
             document_pos: Position::default(),
-            document,
+            document: document.clone(),
+            reference_document: document,
             offset_to_document_pos: Position::default(),
             current_char: None
         }
@@ -87,6 +89,7 @@ impl Editor {
             },
             Key::Char(c) if !c.is_control() => {
                 self.current_char = Some(c);
+                //self.check_diff(c);
                 self.move_cursor(Key::Right)
             }
             _ => (),
@@ -94,8 +97,6 @@ impl Editor {
         self.scroll();
         Ok(())
     }
-
-
 
     fn refresh_screen(&self) -> io::Result<()> {
         Terminal::cursor_hide();
@@ -114,9 +115,6 @@ impl Editor {
 
     fn draw_rows(&self) {
         let height = self.terminal.size().height;
-        let start = self.offset_to_document_pos.x;
-        let end = start + self.terminal.size().width;
-
         for terminal_row in 0..height {
             Terminal::clear_current_line();
             let document_row = terminal_row + self.offset_to_document_pos.y;
@@ -124,15 +122,40 @@ impl Editor {
                 .document
                 .row(document_row)
             {
-                if document_row == self.document_pos.y {
-                    println!("{}\r", row.render(start, end));
+                if self.document_pos.y > document_row {
+                    self.draw_processed_rows(row);
+                } else if self.document_pos.y == document_row {
+                    self.draw_current_row(row);
                 } else {
-                    println!("{}\r", row.render(start, end));
+                    self.draw_row(row);
                 }
             } else {
                 println!("~\r");
             }
         }
+    }
+
+    fn draw_processed_rows(&self, row: &Row) {
+        let start = self.offset_to_document_pos.x;
+        let end = start + self.terminal.size().width;
+        Terminal::set_fg_color(color::Rgb(0x7A, 0xCC, 0x4b));
+        println!("{}\r", row.render(start, end));
+        Terminal::reset_fg_color();
+    }
+    fn draw_current_row(&self, row: &Row) {
+        let fg_highlight = color::Fg(color::Rgb(0x7A, 0xCC, 0x4b));
+        let fg_reset = color::Fg(color::Reset);
+        let start = self.offset_to_document_pos.x;
+        let end = start + self.terminal.size().width;
+        let text = row.render(start, end);
+        let (left, right) = text.split_at(self.document_pos.x);
+        println!("{}{}{}{}\r", fg_highlight, left, fg_reset, right);
+    }
+
+    fn draw_row(&self, row: &Row) {
+        let start = self.offset_to_document_pos.x;
+        let end = start + self.terminal.size().width;
+        println!("{}\r", row.render(start, end));
     }
 
     fn draw_status_bar(&self) {

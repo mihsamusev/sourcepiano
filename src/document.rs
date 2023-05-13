@@ -1,7 +1,7 @@
 use std::{fs, io};
 use unicode_segmentation::UnicodeSegmentation;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Row {
     text: String,
     len: usize
@@ -26,7 +26,7 @@ impl Row {
         self.len
     }
 }
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Document {
     rows: Vec<Row>,
 }
