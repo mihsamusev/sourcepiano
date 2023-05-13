@@ -56,3 +56,26 @@ impl Document {
         self.rows.len()
     }
 }
+
+fn matching_substrings<'a>(reference: &'a str, new: &'a str) -> Vec<(bool, &'a str)> {
+    todo!()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn exact_diff() {
+        let reference_row = "hello kitty, its me mario";
+        let written_row = "helwo kitty, its me   rio";
+        let result = matching_substrings(reference_row, written_row);
+        assert_eq!(&result, &[
+            (true, "hel"),
+            (false, "w"),
+            (true, "o kitty, its me "),
+            (false, "  "),
+            (true, "rio")
+        ])
+    }
+}

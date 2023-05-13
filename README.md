@@ -8,6 +8,7 @@ Main typing mode is substitute chars in Vec<char> buffer of characters / graphem
 - Mininal status bar with, metrics, help and shortcuts
 - Track % completion progress on a file and on a repository level
 - Save session results on exit in a JSON file or something where you can plot WPM, accuracy, top K hardest words
+- probably you dont want to type the entire utf8 char set, only the ascii subset, pre-process to delete them?
 
 ## Other ideas
 - Filters to ignore URL addresses, comments and similar so that you don’t have to type them, color code ignored text
