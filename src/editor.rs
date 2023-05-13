@@ -36,6 +36,7 @@ pub struct Editor {
     document_pos: Position,
     offset_to_document_pos: Position,
     document: Document,
+    current_char: Option<char>
 }
 
 fn clamp_add(value: usize, step: usize, max_value: usize) -> usize {
@@ -61,6 +62,7 @@ impl Editor {
             document_pos: Position::default(),
             document,
             offset_to_document_pos: Position::default(),
+            current_char: None
         }
     }
 
@@ -80,8 +82,12 @@ impl Editor {
             Key::Ctrl('q') => {
                 self.should_quit = true;
             }
-            Key::Up | Key::Down | Key::Left | Key::Right | Key::PageUp | Key::PageDown => {
-                self.move_cursor(pressed_key)
+            Key::Backspace => {
+                self.move_cursor(Key::Left);
+            },
+            Key::Char(c) if !c.is_control() => {
+                self.current_char = Some(c);
+                self.move_cursor(Key::Right)
             }
             _ => (),
         }
@@ -89,6 +95,64 @@ impl Editor {
         Ok(())
     }
 
+
+
+    fn refresh_screen(&self) -> io::Result<()> {
+        Terminal::cursor_hide();
+        Terminal::cursor_position(Position::default());
+        if self.should_quit {
+            Terminal::clear_screen();
+            println!("bye homie\r");
+        } else {
+            self.draw_rows();
+            self.draw_status_bar();
+            Terminal::cursor_position(self.document_pos - self.offset_to_document_pos);
+        }
+        Terminal::cursor_show();
+        Terminal::flush()
+    }
+
+    fn draw_rows(&self) {
+        let height = self.terminal.size().height;
+        let start = self.offset_to_document_pos.x;
+        let end = start + self.terminal.size().width;
+
+        for terminal_row in 0..height {
+            Terminal::clear_current_line();
+            let document_row = terminal_row + self.offset_to_document_pos.y;
+            if let Some(row) = self
+                .document
+                .row(document_row)
+            {
+                if document_row == self.document_pos.y {
+                    println!("{}\r", row.render(start, end));
+                } else {
+                    println!("{}\r", row.render(start, end));
+                }
+            } else {
+                println!("~\r");
+            }
+        }
+    }
+
+    fn draw_status_bar(&self) {
+        let Position { x, y } = self.document_pos;
+        let position = format!(
+            "current char '{}' at {}/{}, line {}/{}",
+            self.current_char.unwrap_or_default(),
+            x + 1,
+            self.document.row(y).map_or(0, |row| row.len()),
+            y + 1,
+            self.document.len()
+        );
+        let width = self.terminal.size().width;
+        let spaces = " ".repeat(width - position.len());
+        Terminal::set_bg_color(STATUS_BG_COLOR);
+        Terminal::set_fg_color(STATUS_FG_COLOR);
+        println!("{}{}\r", spaces, position);
+        Terminal::reset_fg_color();
+        Terminal::reset_bg_color();
+    }
 
     fn move_cursor(&mut self, key: Key) {
         let Position { x: x_old, y: y_old } = self.document_pos;
@@ -127,47 +191,6 @@ impl Editor {
         self.document_pos = Position::new(x_new, y_new);
     }
 
-    fn refresh_screen(&self) -> io::Result<()> {
-        Terminal::cursor_hide();
-        Terminal::cursor_position(Position::default());
-        if self.should_quit {
-            Terminal::clear_screen();
-            println!("bye homie\r");
-        } else {
-            self.draw_rows();
-            self.draw_message_bar();
-            self.draw_status_bar();
-            Terminal::cursor_position(self.document_pos - self.offset_to_document_pos);
-        }
-        Terminal::cursor_show();
-        Terminal::flush()
-    }
-
-    fn draw_rows(&self) {
-        let height = self.terminal.size().height;
-        let start = self.offset_to_document_pos.x;
-        let end = start + self.terminal.size().width;
-
-        for terminal_row in 0..height {
-            Terminal::clear_current_line();
-            let document_row = terminal_row + self.offset_to_document_pos.y;
-            if let Some(row) = self
-                .document
-                .row(document_row)
-            {
-                if document_row == self.document_pos.y {
-                    println!("{}\r", row.render(start, end));
-                } else {
-                    println!("{}\r", row.render(start, end));
-                }
-            } else if self.document.is_empty() && terminal_row == height / 3 {
-                self.draw_welcome_message();
-            } else {
-                println!("~\r");
-            }
-        }
-    }
-
     fn scroll(&mut self) {
         let Position { x, y } = self.document_pos;
         let terminal_width = self.terminal.size().width;
@@ -184,45 +207,6 @@ impl Editor {
         } else if x >= offset.x.saturating_add(terminal_width) {
             offset.x = x.saturating_sub(terminal_width).saturating_add(1);
         }
-    }
-
-    fn draw_row(&self, row: &Row) {
-        let start = self.offset_to_document_pos.x;
-        let end = start + self.terminal.size().width;
-        println!("{}\r", row.render(start, end))
-    }
-
-    fn draw_welcome_message(&self) {
-        let mut message = String::from("Deez nutz editor 0.1.0");
-        let message_width = message.len();
-        let width = self.terminal.size().width;
-        let padding = width.saturating_sub(message_width) / 2;
-        let spaces = " ".repeat(padding.saturating_sub(1));
-        message = format!("~{}{}", spaces, message);
-        message.truncate(width);
-        println!("{}\r", message);
-    }
-
-    fn draw_status_bar(&self) {
-        let Position { x, y } = self.document_pos;
-        let position = format!(
-            "char {}/{}, line {}/{}",
-            x + 1,
-            self.document.row(y).map_or(0, |row| row.len()),
-            y + 1,
-            self.document.len()
-        );
-        let width = self.terminal.size().width;
-        let spaces = " ".repeat(width - position.len());
-        Terminal::set_bg_color(STATUS_BG_COLOR);
-        Terminal::set_fg_color(STATUS_FG_COLOR);
-        println!("{}{}\r", spaces, position);
-        Terminal::reset_fg_color();
-        Terminal::reset_bg_color();
-    }
-
-    fn draw_message_bar(&self) {
-        Terminal::clear_current_line();
     }
 }
 
