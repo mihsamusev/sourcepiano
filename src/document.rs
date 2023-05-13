@@ -25,10 +25,6 @@ impl Row {
     pub fn len(&self) -> usize {
         self.len
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.text.is_empty()
-    }
 }
 #[derive(Default)]
 pub struct Document {
@@ -44,7 +40,7 @@ impl Document {
 
     pub fn open(filename: &str) -> io::Result<Self> {
         let text = fs::read_to_string(filename)?;
-        let rows: Vec<Row> = text.lines().into_iter().map(Row::from).collect();
+        let rows: Vec<Row> = text.lines().map(Row::from).collect();
         Ok(Self { rows })
     }
 
@@ -58,9 +54,5 @@ impl Document {
 
     pub fn len(&self) -> usize {
         self.rows.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.rows.is_empty()
     }
 }

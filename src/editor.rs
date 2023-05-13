@@ -1,5 +1,5 @@
 use crate::{
-    document::{Document, Row},
+    document::{Document},
     Terminal,
 };
 use std::{io, ops::Sub};
