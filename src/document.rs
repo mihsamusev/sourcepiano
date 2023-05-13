@@ -52,6 +52,10 @@ impl Document {
         self.rows.get(index)
     }
 
+    pub fn max_char(&self, index: usize) -> usize {
+        self.row(index).map_or(0, |row| row.len().saturating_sub(1))
+    }
+
     pub fn len(&self) -> usize {
         self.rows.len()
     }

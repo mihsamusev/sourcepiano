@@ -14,6 +14,11 @@ pub struct Terminal {
     _stdout: RawTerminal<io::Stdout>,
 }
 
+pub struct Size {
+    pub width: usize,
+    pub height: usize
+}
+
 impl Terminal {
     pub fn try_new() -> io::Result<Self> {
         let size = termion::terminal_size()?;
@@ -30,6 +35,11 @@ impl Terminal {
                 return key;
             }
         }
+    }
+
+    pub fn size(&self) -> Size {
+        let (width, height) = termion::terminal_size().expect("bloat");
+        Size {width: width as usize, height: height.saturating_sub(2) as usize}
     }
 
     pub fn clear_screen() {
