@@ -1,51 +1,24 @@
 use std::{fs, io};
-use unicode_segmentation::UnicodeSegmentation;
+use crate::row::DualRow;
 
-#[derive(Default, Clone)]
-pub struct Row {
-    text: String,
-    len: usize
-}
-
-impl From<&str> for Row {
-    fn from(slice: &str) -> Self {
-        let text = String::from(slice);
-        let len = text.graphemes(true).count();
-        Row { text, len }
-    }
-}
-
-impl Row {
-    pub fn render(&self, start: usize, end: usize) -> String {
-        let end = self.text.len().min(end);
-        let start = self.text.len().min(start);
-        self.text.graphemes(true).skip(start).take(end - start).collect::<String>()
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
-    }
-}
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Document {
-    rows: Vec<Row>,
+    rows: Vec<DualRow>,
 }
 
-impl Document {
-    pub fn default() -> Self {
-        Self {
-            rows: vec![Row::from("crikey mate!")],
-        }
-    }
-
+impl  Document {
     pub fn open(filename: &str) -> io::Result<Self> {
         let text = fs::read_to_string(filename)?;
-        let rows: Vec<Row> = text.lines().map(Row::from).collect();
+        let rows: Vec<DualRow> = text.lines().map(DualRow::from).collect();
         Ok(Self { rows })
     }
 
-    pub fn row(&self, index: usize) -> Option<&Row> {
+    pub fn row(&self, index: usize) -> Option<&DualRow> {
         self.rows.get(index)
+    }
+
+    pub fn row_mut(&mut self, index: usize) -> Option<&mut DualRow> {
+        self.rows.get_mut(index)
     }
 
     pub fn max_char(&self, index: usize) -> usize {
@@ -57,9 +30,76 @@ impl Document {
     }
 }
 
-fn matching_substrings<'a>(reference: &'a str, new: &'a str) -> Vec<(bool, &'a str)> {
-    todo!()
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Match<'a> {
+    Correct(&'a str),
+    Wrong(&'a str)
 }
+
+struct Substrings<'a> {
+    reference: &'a str,
+    target: &'a str,
+    counter: usize
+}
+
+impl<'a> Substrings<'a> {
+    fn new(reference: &'a str, target: &'a str) -> Self {
+        Self {
+            reference,
+            target,
+            counter: 0
+        }
+    }
+}
+
+impl <'a> Iterator for Substrings<'a> {
+   type Item = Match<'a>; 
+   fn next(&mut self) -> Option<Self::Item> {
+       let mut iter = self.reference.chars()
+            .zip(self.target.chars())
+            .skip(self.counter)
+            .peekable();
+
+        match iter.peek() {
+            Some((ref_char, target_char)) => {
+                if ref_char == target_char {
+                    let size = iter.take_while(|(r, n)| r == n).count();
+                    if size > 0 {
+                        let start = self.counter;
+                        let end = self.counter + size;
+                        self.counter += size;
+                        Some(Match::Correct(&self.reference[start..end]))
+                    } else {
+                        None
+                    }
+                } else {
+                    let size = iter.take_while(|(r, n)| r != n).count();
+                    if size > 0 {
+                        let start = self.counter;
+                        let end = self.counter + size;
+                        self.counter += size;
+                        Some(Match::Wrong(&self.target[start..end]))
+                    } else {
+                        None
+                    }
+
+                }
+            },
+            None => None
+        }
+   }
+}
+        
+
+fn matching_substrings<'a>(reference: &'a str, new: &'a str) -> Vec<Match<'a>> {
+    let mut intervals = Vec::with_capacity(reference.len());
+    let mut substrings = Substrings::new(reference, new);
+    while let Some(result) = substrings.next() {
+        intervals.push(result);
+    }
+    intervals
+}
+
 
 #[cfg(test)]
 mod test {
@@ -71,11 +111,11 @@ mod test {
         let written_row = "helwo kitty, its me   rio";
         let result = matching_substrings(reference_row, written_row);
         assert_eq!(&result, &[
-            (true, "hel"),
-            (false, "w"),
-            (true, "o kitty, its me "),
-            (false, "  "),
-            (true, "rio")
+            Match::Correct("hel"),
+            Match::Wrong("w"),
+            Match::Correct("o kitty, its me "),
+            Match::Wrong("  "),
+            Match::Correct("rio")
         ])
     }
 }

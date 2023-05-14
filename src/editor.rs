@@ -1,10 +1,11 @@
 use crate::{
-    document::{Document, Row},
+    document::{Document},
+    row::DualRow,
     Terminal,
 };
 use std::{io, ops::Sub};
-use termion::event::Key;
 use termion::color;
+use termion::event::Key;
 
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
@@ -22,13 +23,13 @@ impl Position {
 }
 
 impl Sub<Position> for Position {
-   type Output = Position;
-   fn sub(self, rhs: Position) -> Self::Output {
-    Position {
-        x: self.x.saturating_sub(rhs.x),
-        y: self.y.saturating_sub(rhs.y),
-    } 
-   } 
+    type Output = Position;
+    fn sub(self, rhs: Position) -> Self::Output {
+        Position {
+            x: self.x.saturating_sub(rhs.x),
+            y: self.y.saturating_sub(rhs.y),
+        }
+    }
 }
 pub struct Editor {
     should_quit: bool,
@@ -36,8 +37,7 @@ pub struct Editor {
     document_pos: Position,
     offset_to_document_pos: Position,
     document: Document,
-    reference_document: Document,
-    current_char: Option<char>
+    current_char: Option<char>,
 }
 
 fn clamp_add(value: usize, step: usize, max_value: usize) -> usize {
@@ -51,21 +51,17 @@ fn clamp_add(value: usize, step: usize, max_value: usize) -> usize {
 }
 
 impl Editor {
-    pub fn with_args(args: &[String]) -> Self {
-        let document = match args.get(1) {
-            Some(maybe_filename) => Document::open(maybe_filename).unwrap_or_default(),
-            _ => Document::default(),
-        };
+    pub fn with_file(filename: &str) -> io::Result<Self> {
+        let document = Document::open(filename)?;
 
-        Self {
+        Ok(Self {
             should_quit: false,
             terminal: Terminal::try_new().expect("failed to get terminal size="),
             document_pos: Position::default(),
-            document: document.clone(),
-            reference_document: document,
+            document: document,
             offset_to_document_pos: Position::default(),
-            current_char: None
-        }
+            current_char: None,
+        })
     }
 
     pub fn run(&mut self) {
@@ -85,12 +81,17 @@ impl Editor {
                 self.should_quit = true;
             }
             Key::Backspace => {
-                self.move_cursor(Key::Left);
-            },
+                if let Some(row) = self.document.row_mut(self.document_pos.y) {
+                    row.pop_char();
+                    self.move_cursor(Key::Left);
+                }
+            }
             Key::Char(c) if !c.is_control() => {
                 self.current_char = Some(c);
-                //self.check_diff(c);
-                self.move_cursor(Key::Right)
+                if let Some(row) = self.document.row_mut(self.document_pos.y) {
+                    row.push_char(c);
+                    self.move_cursor(Key::Right)
+                }
             }
             _ => (),
         }
@@ -118,10 +119,7 @@ impl Editor {
         for terminal_row in 0..height {
             Terminal::clear_current_line();
             let document_row = terminal_row + self.offset_to_document_pos.y;
-            if let Some(row) = self
-                .document
-                .row(document_row)
-            {
+            if let Some(row) = self.document.row(document_row) {
                 if self.document_pos.y > document_row {
                     self.draw_processed_rows(row);
                 } else if self.document_pos.y == document_row {
@@ -135,24 +133,27 @@ impl Editor {
         }
     }
 
-    fn draw_processed_rows(&self, row: &Row) {
+    fn draw_processed_rows(&self, row: &DualRow) {
         let start = self.offset_to_document_pos.x;
         let end = start + self.terminal.size().width;
         Terminal::set_fg_color(color::Rgb(0x7A, 0xCC, 0x4b));
         println!("{}\r", row.render(start, end));
         Terminal::reset_fg_color();
     }
-    fn draw_current_row(&self, row: &Row) {
+    fn draw_current_row(&self, row: &DualRow) {
         let fg_highlight = color::Fg(color::Rgb(0x7A, 0xCC, 0x4b));
         let fg_reset = color::Fg(color::Reset);
         let start = self.offset_to_document_pos.x;
         let end = start + self.terminal.size().width;
         let text = row.render(start, end);
-        let (left, right) = text.split_at(self.document_pos.x);
+        let split_idx = text.char_indices()
+            .nth(self.document_pos.x)
+            .map_or(start, |(n, _)| n);
+        let (left, right) = text.split_at(split_idx);
         println!("{}{}{}{}\r", fg_highlight, left, fg_reset, right);
     }
 
-    fn draw_row(&self, row: &Row) {
+    fn draw_row(&self, row: &DualRow) {
         let start = self.offset_to_document_pos.x;
         let end = start + self.terminal.size().width;
         println!("{}\r", row.render(start, end));
@@ -180,23 +181,23 @@ impl Editor {
     fn move_cursor(&mut self, key: Key) {
         let Position { x: x_old, y: y_old } = self.document_pos;
         let (mut x_new, mut y_new) = (x_old, y_old);
-        
+
         let height = self.document.len();
         let x_max = self.document.max_char(y_old);
-        
+
         match key {
             Key::Up => {
                 y_new = y_old.saturating_sub(1);
                 x_new = self.document.max_char(y_new).min(x_new);
-            },
+            }
             Key::Down => {
                 y_new = height.min(y_old.saturating_add(1));
                 x_new = self.document.max_char(y_new).min(x_new);
-            },
+            }
             Key::Left => {
                 if x_old == 0 {
                     y_new = y_old.saturating_sub(1);
-                    x_new = self.document.max_char(y_new); 
+                    x_new = self.document.max_char(y_new);
                 } else {
                     x_new = x_old.saturating_sub(1);
                 }
@@ -208,7 +209,7 @@ impl Editor {
                 } else {
                     x_new = clamp_add(x_old, 1, x_max);
                 }
-           }
+            }
             _ => (),
         };
         self.document_pos = Position::new(x_new, y_new);

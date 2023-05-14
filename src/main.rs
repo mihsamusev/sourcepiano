@@ -1,12 +1,14 @@
 mod document;
 mod editor;
 mod terminal;
+mod row;
 use editor::Editor;
-use std::{env};
+use std::{env, io};
 use terminal::Terminal;
 
-
-fn main() {
-    let args: Vec<String> = env::args().collect();
-    Editor::with_args(&args).run();
+fn main() -> io::Result<()> {
+    if let Some(maybe_filename) = env::args().skip(1).next() {
+       Editor::with_file(&maybe_filename)?.run();
+    }
+    Ok(())
 }
