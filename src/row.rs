@@ -1,5 +1,7 @@
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::row_iterator::DiffParts;
+
 #[derive(Debug, Clone)]
 pub struct DualRow {
     passive: String,
@@ -55,6 +57,10 @@ impl DualRow {
                     .take(end.saturating_sub(passive_start))
             )
             .collect::<String>()
+    }
+
+    pub fn diff_parts(&self) -> DiffParts {
+        DiffParts::new(&self.passive, &self.active)
     }
 }
 

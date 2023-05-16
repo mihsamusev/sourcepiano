@@ -2,6 +2,7 @@ mod document;
 mod editor;
 mod terminal;
 mod row;
+mod row_iterator;
 use editor::Editor;
 use std::{env, io};
 use terminal::Terminal;
