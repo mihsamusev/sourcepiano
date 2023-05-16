@@ -2,9 +2,10 @@ use crate::row::DualRow;
 
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Parts<'a> {
+pub enum DiffPart<'a> {
     Same(&'a str),
     New(&'a str),
+    Ref(&'a str)
 }
 
 pub struct DiffParts<'a> {
@@ -24,7 +25,7 @@ impl<'a> DiffParts<'a> {
 }
 
 impl<'a> Iterator for DiffParts<'a> {
-    type Item = Parts<'a>;
+    type Item = DiffPart<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         let mut iter = self
             .before
@@ -41,7 +42,7 @@ impl<'a> Iterator for DiffParts<'a> {
                         let start = self.counter;
                         let end = self.counter + size;
                         self.counter += size;
-                        Some(Parts::Same(&self.before[start..end]))
+                        Some(DiffPart::Same(&self.before[start..end]))
                     } else {
                         None
                     }
@@ -51,7 +52,7 @@ impl<'a> Iterator for DiffParts<'a> {
                         let start = self.counter;
                         let end = self.counter + size;
                         self.counter += size;
-                        Some(Parts::New(&self.after[start..end]))
+                        Some(DiffPart::New(&self.after[start..end]))
                     } else {
                         None
                     }
@@ -61,7 +62,7 @@ impl<'a> Iterator for DiffParts<'a> {
                 if self.counter < self.before.len() {
                     let start = self.counter;
                     self.counter = self.before.len();
-                    Some(Parts::Same(&self.before[start..]))
+                    Some(DiffPart::Ref(&self.before[start..]))
                     
                 } else {
                     None
@@ -76,7 +77,7 @@ impl<'a> Iterator for DiffParts<'a> {
 mod test {
     use super::*;
 
-    fn diff_parts<'a>(before: &'a str, after: &'a str) -> Vec<Parts<'a>> {
+    fn diff_parts<'a>(before: &'a str, after: &'a str) -> Vec<DiffPart<'a>> {
         let mut intervals = Vec::with_capacity(before.len());
         let mut substrings = DiffParts::new(before, after);
         while let Some(result) = substrings.next() {
@@ -93,15 +94,27 @@ mod test {
         assert_eq!(
             &parts,
             &[
-                Parts::Same("hel"),
-                Parts::New("w"),
-                Parts::Same("o kitty, its me "),
-                Parts::New("  "),
-                Parts::Same("rio")
+                DiffPart::Same("hel"),
+                DiffPart::New("w"),
+                DiffPart::Same("o kitty, its me "),
+                DiffPart::New("  "),
+                DiffPart::Same("rio")
             ]
         )
     }
 
+    #[test]
+    fn no_after_string() {
+        let before = "hello kitty";
+        let after = "";
+        let parts = diff_parts(before, after);
+        assert_eq!(
+            &parts,
+            &[
+                DiffPart::Ref("hello kitty"),
+            ]
+        )
+    }
     #[test]
     fn after_string_is_smaller() {
         let before = "hello kitty, its me mario";
@@ -110,10 +123,10 @@ mod test {
         assert_eq!(
             &parts,
             &[
-                Parts::Same("hel"),
-                Parts::New("w"),
-                Parts::Same("o kitty,"), 
-                Parts::Same(" its me mario"),
+                DiffPart::Same("hel"),
+                DiffPart::New("w"),
+                DiffPart::Same("o kitty,"), 
+                DiffPart::Ref(" its me mario"),
             ]
         )
     }

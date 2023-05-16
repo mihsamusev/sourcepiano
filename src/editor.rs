@@ -1,7 +1,7 @@
 use crate::{
     document::{Document},
     row::DualRow,
-    Terminal,
+    Terminal, row_iterator::DiffPart,
 };
 use std::{io, ops::Sub};
 use termion::color;
@@ -123,7 +123,8 @@ impl Editor {
                 if self.document_pos.y > document_row {
                     self.draw_processed_rows(row);
                 } else if self.document_pos.y == document_row {
-                    self.draw_current_row(row);
+                    //self.draw_current_row(row);
+                    self.draw_row_diff(row);
                 } else {
                     self.draw_row(row);
                 }
@@ -131,6 +132,25 @@ impl Editor {
                 println!("~\r");
             }
         }
+    }
+
+    fn draw_row_diff(&self, row: &DualRow) {
+        let mut colored = String::with_capacity(2 * row.len());
+        row.diff_parts().for_each(|part| match part {
+            DiffPart::Same(s) => {
+                colored.push_str(color::Green.fg_str());
+                colored.push_str(s);
+            },
+            DiffPart::New(s) => {
+                colored.push_str(color::Green.fg_str());
+                colored.push_str(s);
+            },
+            DiffPart::Ref(s) => {
+                colored.push_str(color::Reset.fg_str());
+                colored.push_str(s);
+            }
+        });
+        println!("{}\r", colored);
     }
 
     fn draw_processed_rows(&self, row: &DualRow) {
