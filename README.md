@@ -1,6 +1,5 @@
 ## codepiano - pracice touch typing in CLI
 
-Main typing mode is substitute chars in Vec<char> buffer of characters / graphemes, if next character input is the same as a lookup in the true file highlight background
 
 ## Bugs
 - spacebar cant be highlighted, think of another colorscheme, maybe background
