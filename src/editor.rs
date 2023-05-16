@@ -86,7 +86,7 @@ impl Editor {
                     self.move_cursor(Key::Left);
                 }
             }
-            Key::Char(c) if !c.is_control() => {
+            Key::Char(c) if c.is_ascii() => {
                 self.current_char = Some(c);
                 if let Some(row) = self.document.row_mut(self.document_pos.y) {
                     row.push_char(c);
@@ -121,7 +121,8 @@ impl Editor {
             let document_row = terminal_row + self.offset_to_document_pos.y;
             if let Some(row) = self.document.row(document_row) {
                 if self.document_pos.y > document_row {
-                    self.draw_processed_rows(row);
+                    // self.draw_processed_rows(row);
+                    self.draw_row_diff(row);
                 } else if self.document_pos.y == document_row {
                     //self.draw_current_row(row);
                     self.draw_row_diff(row);
@@ -137,19 +138,20 @@ impl Editor {
     fn draw_row_diff(&self, row: &DualRow) {
         let mut colored = String::with_capacity(2 * row.len());
         row.diff_parts().for_each(|part| match part {
-            DiffPart::Same(s) => {
+            DiffPart::Match(s) => {
                 colored.push_str(color::Green.fg_str());
                 colored.push_str(s);
             },
-            DiffPart::New(s) => {
-                colored.push_str(color::Green.fg_str());
+            DiffPart::Mismatch(s) => {
+                colored.push_str(color::Red.fg_str());
                 colored.push_str(s);
             },
-            DiffPart::Ref(s) => {
+            DiffPart::Untouched(s) => {
                 colored.push_str(color::Reset.fg_str());
                 colored.push_str(s);
             }
         });
+        colored.push_str(color::Reset.fg_str());
         println!("{}\r", colored);
     }
 

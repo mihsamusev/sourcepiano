@@ -3,9 +3,9 @@ use crate::row::DualRow;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DiffPart<'a> {
-    Same(&'a str),
-    New(&'a str),
-    Ref(&'a str)
+    Match(&'a str),
+    Mismatch(&'a str),
+    Untouched(&'a str)
 }
 
 pub struct DiffParts<'a> {
@@ -42,7 +42,7 @@ impl<'a> Iterator for DiffParts<'a> {
                         let start = self.counter;
                         let end = self.counter + size;
                         self.counter += size;
-                        Some(DiffPart::Same(&self.before[start..end]))
+                        Some(DiffPart::Match(&self.before[start..end]))
                     } else {
                         None
                     }
@@ -52,7 +52,7 @@ impl<'a> Iterator for DiffParts<'a> {
                         let start = self.counter;
                         let end = self.counter + size;
                         self.counter += size;
-                        Some(DiffPart::New(&self.after[start..end]))
+                        Some(DiffPart::Mismatch(&self.after[start..end]))
                     } else {
                         None
                     }
@@ -62,7 +62,7 @@ impl<'a> Iterator for DiffParts<'a> {
                 if self.counter < self.before.len() {
                     let start = self.counter;
                     self.counter = self.before.len();
-                    Some(DiffPart::Ref(&self.before[start..]))
+                    Some(DiffPart::Untouched(&self.before[start..]))
                     
                 } else {
                     None
@@ -94,11 +94,27 @@ mod test {
         assert_eq!(
             &parts,
             &[
-                DiffPart::Same("hel"),
-                DiffPart::New("w"),
-                DiffPart::Same("o kitty, its me "),
-                DiffPart::New("  "),
-                DiffPart::Same("rio")
+                DiffPart::Match("hel"),
+                DiffPart::Mismatch("w"),
+                DiffPart::Match("o kitty, its me "),
+                DiffPart::Mismatch("  "),
+                DiffPart::Match("rio")
+            ]
+        )
+    }
+
+    #[test]
+    fn before_and_after_are_equal_size_utf8() {
+        let before = "здарова пес";
+        let after = "здорова ";
+        let parts = diff_parts(before, after);
+        assert_eq!(
+            &parts,
+            &[
+                DiffPart::Match("зд"),
+                DiffPart::Mismatch("о"),
+                DiffPart::Match("рова "),
+                DiffPart::Untouched(" пес")
             ]
         )
     }
@@ -111,7 +127,7 @@ mod test {
         assert_eq!(
             &parts,
             &[
-                DiffPart::Ref("hello kitty"),
+                DiffPart::Untouched("hello kitty"),
             ]
         )
     }
@@ -123,10 +139,10 @@ mod test {
         assert_eq!(
             &parts,
             &[
-                DiffPart::Same("hel"),
-                DiffPart::New("w"),
-                DiffPart::Same("o kitty,"), 
-                DiffPart::Ref(" its me mario"),
+                DiffPart::Match("hel"),
+                DiffPart::Mismatch("w"),
+                DiffPart::Match("o kitty,"), 
+                DiffPart::Untouched(" its me mario"),
             ]
         )
     }

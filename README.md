@@ -2,6 +2,11 @@
 
 Main typing mode is substitute chars in Vec<char> buffer of characters / graphemes, if next character input is the same as a lookup in the true file highlight background
 
+## Bugs
+- spacebar cant be highlighted, think of another colorscheme, maybe background
+- something happens on a very last line, block it
+- after backspace the cursor is behaving weird
+
 ## MVP TODO:
 - Color code typed errors
 - Read buffers using network or filesystem
