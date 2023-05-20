@@ -1,7 +1,7 @@
 ## sourcepiano - pracice touch typing anything in CLI
 Why `sourcepiano`?
-- Exercise [touch typing](https://en.wikipedia.org/wiki/Touch_typing) in your terminal with any text files you want, both plain text and source code. 
-- Capture metris to drive your practice.
+- Exercise [touch typing](https://en.wikipedia.org/wiki/Touch_typing) in your terminal with plain text and source code. 
+- Capture metrics to drive your practice.
 - Study source code and text by re-writting it. Actively engaging with the file content translates to improved information retention.
 
 ## Getting started
@@ -18,7 +18,7 @@ curl <url> | sourcepiano
     - [ ] correct color
     - [ ] incorrect color
     - scroll step
-- Mininal status bar with, navigation, metrics and shortcuts
+- [ ] Mininal status bar with, navigation, metrics and shortcuts
 
 ### IO
 - [x] Read a single file into buffer
