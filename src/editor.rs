@@ -83,9 +83,9 @@ impl Editor {
             Key::Backspace => {
                 if let Some(row) = self.document.row_mut(self.document_pos.y) {
                     row.pop_char();
-                    self.move_cursor(Key::Left);
                 }
-            }
+                self.move_cursor(Key::Left);
+            },
             Key::Char(c) if c.is_ascii() && !c.is_control() => {
                 self.current_char = Some(c);
                 if let Some(row) = self.document.row_mut(self.document_pos.y) {
@@ -93,7 +93,14 @@ impl Editor {
                     self.move_cursor(Key::Right)
                 }
             }
-            _ => (),
+            Key::Char(c) if c == '\n' => {
+                if let Some(row) = self.document.row(self.document_pos.y) {
+                    if self.document_pos.x == row.len() {
+                        self.move_cursor(Key::Right);
+                    }
+                }
+            }
+            _ => ()
         }
         self.scroll();
         Ok(())
@@ -162,9 +169,9 @@ impl Editor {
         let position = format!(
             "current char '{}' at {}/{}, line {}/{}",
             self.current_char.unwrap_or_default(),
-            x + 1,
+            x,
             self.document.row(y).map_or(0, |row| row.len()),
-            y + 1,
+            y,
             self.document.len()
         );
         let width = self.terminal.size().width;
@@ -193,7 +200,7 @@ impl Editor {
                 x_new = self.document.row_len(y_new).min(x_new);
             }
             Key::Left => {
-                if x_old == 0 {
+                if x_old == 0 && y_old != 0 {
                     y_new = y_old.saturating_sub(1);
                     x_new = self.document.row_len(y_new);
                 } else {
@@ -201,7 +208,7 @@ impl Editor {
                 }
             }
             Key::Right => {
-                if x_old == x_max {
+                if x_old == x_max && y_old != height {
                     x_new = 0;
                     y_new = height.min(y_old.saturating_add(1));
                 } else {
