@@ -1,15 +1,15 @@
-## codepiano - pracice touch typing anything in CLI
-Why codepiano?
+## sourcepiano - pracice touch typing anything in CLI
+Why sourcepiano?
 - practice [touch typing](https://en.wikipedia.org/wiki/Touch_typing) right in your terminal with any text files you want, both plain text and source code. 
 - write as you read translates to improved information retention by actively engaging with the file content.
 
 ## Getting started
 ```bash
-codepiano <file>
+sourcepiano <file>
 ```
 
 ```bash
-codepiano <url>
+sourcepiano <url>
 ```
 
 ## Bugs
