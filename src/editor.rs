@@ -58,7 +58,7 @@ impl Editor {
             should_quit: false,
             terminal: Terminal::try_new().expect("failed to get terminal size="),
             document_pos: Position::default(),
-            document: document,
+            document,
             offset_to_document_pos: Position::default(),
             current_char: None,
         })
@@ -86,7 +86,7 @@ impl Editor {
                     self.move_cursor(Key::Left);
                 }
             }
-            Key::Char(c) if c.is_ascii() => {
+            Key::Char(c) if c.is_ascii() && !c.is_control() => {
                 self.current_char = Some(c);
                 if let Some(row) = self.document.row_mut(self.document_pos.y) {
                     row.push_char(c);
@@ -120,11 +120,7 @@ impl Editor {
             Terminal::clear_current_line();
             let document_row = terminal_row + self.offset_to_document_pos.y;
             if let Some(row) = self.document.row(document_row) {
-                if self.document_pos.y > document_row {
-                    // self.draw_processed_rows(row);
-                    self.draw_row_diff(row);
-                } else if self.document_pos.y == document_row {
-                    //self.draw_current_row(row);
+                if self.document_pos.y >= document_row {
                     self.draw_row_diff(row);
                 } else {
                     self.draw_row(row);
@@ -153,26 +149,6 @@ impl Editor {
         });
         colored.push_str(color::Reset.fg_str());
         println!("{}\r", colored);
-    }
-
-    fn draw_processed_rows(&self, row: &DualRow) {
-        let start = self.offset_to_document_pos.x;
-        let end = start + self.terminal.size().width;
-        Terminal::set_fg_color(color::Rgb(0x7A, 0xCC, 0x4b));
-        println!("{}\r", row.render(start, end));
-        Terminal::reset_fg_color();
-    }
-    fn draw_current_row(&self, row: &DualRow) {
-        let fg_highlight = color::Fg(color::Rgb(0x7A, 0xCC, 0x4b));
-        let fg_reset = color::Fg(color::Reset);
-        let start = self.offset_to_document_pos.x;
-        let end = start + self.terminal.size().width;
-        let text = row.render(start, end);
-        let split_idx = text.char_indices()
-            .nth(self.document_pos.x)
-            .map_or(start, |(n, _)| n);
-        let (left, right) = text.split_at(split_idx);
-        println!("{}{}{}{}\r", fg_highlight, left, fg_reset, right);
     }
 
     fn draw_row(&self, row: &DualRow) {
@@ -205,21 +181,21 @@ impl Editor {
         let (mut x_new, mut y_new) = (x_old, y_old);
 
         let height = self.document.len();
-        let x_max = self.document.max_char(y_old);
+        let x_max = self.document.row_len(y_old);
 
         match key {
             Key::Up => {
                 y_new = y_old.saturating_sub(1);
-                x_new = self.document.max_char(y_new).min(x_new);
+                x_new = self.document.row_len(y_new).min(x_new);
             }
             Key::Down => {
                 y_new = height.min(y_old.saturating_add(1));
-                x_new = self.document.max_char(y_new).min(x_new);
+                x_new = self.document.row_len(y_new).min(x_new);
             }
             Key::Left => {
                 if x_old == 0 {
                     y_new = y_old.saturating_sub(1);
-                    x_new = self.document.max_char(y_new);
+                    x_new = self.document.row_len(y_new);
                 } else {
                     x_new = x_old.saturating_sub(1);
                 }

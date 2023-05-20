@@ -1,6 +1,3 @@
-use crate::row::DualRow;
-
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DiffPart<'a> {
     Match(&'a str),

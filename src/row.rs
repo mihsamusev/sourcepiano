@@ -1,5 +1,3 @@
-use unicode_segmentation::UnicodeSegmentation;
-
 use crate::row_iterator::DiffParts;
 
 #[derive(Debug, Clone)]

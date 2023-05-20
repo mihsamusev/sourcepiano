@@ -21,8 +21,8 @@ impl Document {
         self.rows.get_mut(index)
     }
 
-    pub fn max_char(&self, index: usize) -> usize {
-        self.row(index).map_or(0, |row| row.len().saturating_sub(1))
+    pub fn row_len(&self, index: usize) -> usize {
+        self.row(index).map_or(0, |row| row.len())
     }
 
     pub fn len(&self) -> usize {

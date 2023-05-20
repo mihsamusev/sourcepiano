@@ -8,7 +8,7 @@ use std::{env, io};
 use terminal::Terminal;
 
 fn main() -> io::Result<()> {
-    if let Some(maybe_filename) = env::args().skip(1).next() {
+    if let Some(maybe_filename) = env::args().nth(1) {
        Editor::with_file(&maybe_filename)?.run();
     }
     Ok(())
