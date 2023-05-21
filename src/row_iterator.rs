@@ -2,7 +2,7 @@
 pub enum DiffPart<'a> {
     Match(&'a str),
     Mismatch(&'a str),
-    Untouched(&'a str)
+    Untouched(&'a str),
 }
 
 pub struct DiffParts<'a> {
@@ -60,15 +60,13 @@ impl<'a> Iterator for DiffParts<'a> {
                     let start = self.counter;
                     self.counter = self.before.len();
                     Some(DiffPart::Untouched(&self.before[start..]))
-                    
                 } else {
                     None
                 }
-            },
+            }
         }
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -121,12 +119,7 @@ mod test {
         let before = "hello kitty";
         let after = "";
         let parts = diff_parts(before, after);
-        assert_eq!(
-            &parts,
-            &[
-                DiffPart::Untouched("hello kitty"),
-            ]
-        )
+        assert_eq!(&parts, &[DiffPart::Untouched("hello kitty"),])
     }
     #[test]
     fn after_string_is_smaller() {
@@ -138,7 +131,7 @@ mod test {
             &[
                 DiffPart::Match("hel"),
                 DiffPart::Mismatch("w"),
-                DiffPart::Match("o kitty,"), 
+                DiffPart::Match("o kitty,"),
                 DiffPart::Untouched(" its me mario"),
             ]
         )

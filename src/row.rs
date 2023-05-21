@@ -41,7 +41,10 @@ impl DualRow {
         let start = self.len().min(start);
 
         let active_start = self.active_cursor.min(start);
-        let active_size = self.active_cursor.saturating_sub(active_start).min(end - start);
+        let active_size = self
+            .active_cursor
+            .saturating_sub(active_start)
+            .min(end - start);
         let passive_start = self.active_cursor.max(start);
 
         self.active
@@ -52,7 +55,7 @@ impl DualRow {
                 self.passive
                     .chars()
                     .skip(passive_start)
-                    .take(end.saturating_sub(passive_start))
+                    .take(end.saturating_sub(passive_start)),
             )
             .collect::<String>()
     }
@@ -93,7 +96,7 @@ mod test {
         row.push_char('e');
         row.push_char('w');
         row.push_char('l');
-        
+
         // cursor is in range
         assert_eq!(row.render(0, 12), String::from("Hwewl wørld"));
         assert_eq!(row.render(2, 9), String::from("ewl wør"));

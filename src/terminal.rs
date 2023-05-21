@@ -1,10 +1,9 @@
 use std::io::{self, Write};
 
+use termion::cursor;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
-use termion::color;
-use termion::cursor;
 
 use crate::editor::Position;
 
@@ -16,7 +15,7 @@ pub struct Terminal {
 
 pub struct Size {
     pub width: usize,
-    pub height: usize
+    pub height: usize,
 }
 
 impl Terminal {
@@ -39,7 +38,10 @@ impl Terminal {
 
     pub fn size(&self) -> Size {
         let (width, height) = termion::terminal_size().expect("bloat");
-        Size {width: width as usize, height: height.saturating_sub(2) as usize}
+        Size {
+            width: width as usize,
+            height: height.saturating_sub(2) as usize,
+        }
     }
 
     pub fn clear_screen() {
@@ -64,21 +66,5 @@ impl Terminal {
     }
     pub fn cursor_show() {
         print!("{}", cursor::Show);
-    }
-
-    pub fn set_bg_color(color: color::Rgb) {
-        print!("{}", color::Bg(color))
-    }
-
-    pub fn reset_bg_color() {
-        print!("{}", color::Bg(color::Reset))
-    }
-
-    pub fn set_fg_color(color: color::Rgb) {
-        print!("{}", color::Fg(color))
-    }
-
-    pub fn reset_fg_color() {
-        print!("{}", color::Fg(color::Reset))
     }
 }

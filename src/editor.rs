@@ -1,14 +1,6 @@
-use crate::{
-    document::{Document},
-    row::DualRow,
-    Terminal, row_iterator::DiffPart,
-};
+use crate::{config::Config, document::Document, row::DualRow, row_iterator::DiffPart, Terminal};
 use std::{io, ops::Sub};
-use termion::color;
 use termion::event::Key;
-
-const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
-const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 
 #[derive(Default, Clone, Copy)]
 pub struct Position {
@@ -32,6 +24,7 @@ impl Sub<Position> for Position {
     }
 }
 pub struct Editor {
+    config: Config,
     should_quit: bool,
     terminal: Terminal,
     document_pos: Position,
@@ -55,6 +48,7 @@ impl Editor {
         let document = Document::open(filename)?;
 
         Ok(Self {
+            config: Config::default(),
             should_quit: false,
             terminal: Terminal::try_new().expect("failed to get terminal size="),
             document_pos: Position::default(),
@@ -85,7 +79,7 @@ impl Editor {
                     row.pop_char();
                 }
                 self.move_cursor(Key::Left);
-            },
+            }
             Key::Char(c) if c.is_ascii() && !c.is_control() => {
                 self.current_char = Some(c);
                 if let Some(row) = self.document.row_mut(self.document_pos.y) {
@@ -100,7 +94,7 @@ impl Editor {
                     }
                 }
             }
-            _ => ()
+            _ => (),
         }
         self.scroll();
         Ok(())
@@ -142,19 +136,19 @@ impl Editor {
         let mut colored = String::with_capacity(2 * row.len());
         row.diff_parts().for_each(|part| match part {
             DiffPart::Match(s) => {
-                colored.push_str(color::Green.fg_str());
+                colored.push_str(&self.config.fg_color_match);
                 colored.push_str(s);
-            },
+            }
             DiffPart::Mismatch(s) => {
-                colored.push_str(color::Red.fg_str());
+                colored.push_str(&self.config.fg_color_mismatch);
                 colored.push_str(s);
-            },
+            }
             DiffPart::Untouched(s) => {
-                colored.push_str(color::Reset.fg_str());
+                colored.push_str(&self.config.fg_color_default);
                 colored.push_str(s);
             }
         });
-        colored.push_str(color::Reset.fg_str());
+        colored.push_str(&self.config.fg_color_default);
         println!("{}\r", colored);
     }
 
@@ -176,11 +170,15 @@ impl Editor {
         );
         let width = self.terminal.size().width;
         let spaces = " ".repeat(width - position.len());
-        Terminal::set_bg_color(STATUS_BG_COLOR);
-        Terminal::set_fg_color(STATUS_FG_COLOR);
-        println!("{}{}\r", spaces, position);
-        Terminal::reset_fg_color();
-        Terminal::reset_bg_color();
+        println!(
+            "{}{}{}{}{}{}\r",
+            self.config.bg_color_status_bar,
+            self.config.fg_color_status_bar,
+            spaces,
+            position,
+            self.config.fg_color_default,
+            self.config.bg_color_default
+        );
     }
 
     fn move_cursor(&mut self, key: Key) {

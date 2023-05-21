@@ -12,6 +12,10 @@ curl <url> | sourcepiano
 ```
 
 ## MVP TODO:
+### Bugs
+- disable terminal scrolling
+- horizontal wrap / scroll is buggy
+
 ### UI
 - [x] Color code typed errors
 - [ ] config file like `.codepianorc`
