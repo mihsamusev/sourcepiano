@@ -13,6 +13,7 @@ curl <url> | sourcepiano
 
 ## MVP TODO:
 ### Bugs
+- move to `crossterm`
 - disable terminal scrolling
 - horizontal wrap / scroll is buggy
 
