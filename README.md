@@ -12,9 +12,11 @@ curl <url> | sourcepiano
 ```
 
 ## MVP TODO:
-### Bugs
-- move to `crossterm`
+### Bugs and QoL
+- move to `crossterm` for crossplatform
+- make it possible to either tab or ignore all leading whitespace in the row
 - disable terminal scrolling
+- scroll down by entire editor view (or step size in cfg)
 - horizontal wrap / scroll is buggy
 
 ### UI
